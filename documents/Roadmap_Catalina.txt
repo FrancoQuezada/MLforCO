@@ -1,0 +1,511 @@
+--- Página 1 ---
+Roadmap Catalina Muñoz
+Machine learning for combinatorial optimization
+Dr. Franco Quezada
+Assistant Professor
+Universidad de Santiago de Chile
+franco.quezada@usach.cl
+
+--- Página 2 ---
+Executive summary
+The current manuscript has a publishable core, but it should be repositioned more carefully.
+The paper should not be framed as a broad solution to “machine learning for combinatorial op-
+timization.” Instead, it should be presented as a small-data, feasibility-aware matheuristic
+for repeated operational 0-1 MILPs. The central idea is strong: learn binary decisions from
+solvedinstances,projectthepredictionintoafeasiblebinaryvectorusingaPhase-I-inspiredrule,
+and solve the resulting restricted MILP.
+The next stage should not start by adding a much more complex learning method. The
+priority is to prove, through a clean ablation study, which components are responsible for the
+observed performance. After that, the team can decide whether to add a second 0-1 MILP class
+and whether to include a regret-aware extension.
+Recommended order:
+1. Reposition the paper and narrow the claims.
+2. Reproduce the current MCLSP results with clean scripts.
+3. Build the ablation table and report feasibility, gap, runtime, and number of flips.
+4. Add robustness tests across random seeds, training sizes, and instance difficulty.
+5. Add a minimal regret-aware experiment: select models by validation objective regret, not
+only by classification accuracy.
+6. Only then decide whether to add a second 0-1 MILP problem class.
+1
+
+--- Página 3 ---
+Índice
+1 How to reposition the work 3
+1.1 Current risk . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.2 Recommended positioning . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.3 Possible titles . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.4 Reformulated contribution statement . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+2 Research questions to answer 5
+3 General roadmap diagram 6
+4 Ablation table: purpose and structure 7
+4.1 Canonical ablation variants . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+4.2 Main ablation table template . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+4.3 Example full table . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+5 Experiments needed to build the ablation table 9
+5.1 Experiment 0: reproducibility and clean pipeline . . . . . . . . . . . . . . . . . . . . . . 9
+5.2 Experiment 1: baseline comparison . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+5.3 Experiment 2: feasibility rule ablation . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+5.4 Experiment 3: feature-set ablation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+5.5 Experiment 4: post-processing ablation . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+5.6 Experiment 5: robustness across seeds and splits . . . . . . . . . . . . . . . . . . . . . . 11
+5.7 Experiment 6: training-set size sensitivity . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+5.8 Experiment 7: instance difficulty and scalability . . . . . . . . . . . . . . . . . . . . . . . 11
+6 Should we add another 0-1 MILP problem? 12
+6.1 Path A: conservative and faster . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+6.2 Path B: broader and stronger . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+7 How to compare with the literature 13
+7.1 Computational baselines . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+7.2 Literature positioning . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+8 Regret-aware extension 14
+8.1 Core idea . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+8.2 Minimum viable regret experiment . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+8.3 Second-level regret-aware variant: weighted classification . . . . . . . . . . . . . . . . . . 14
+8.4 Third-level variant: regret-aware feasibility rule . . . . . . . . . . . . . . . . . . . . . . . 15
+9 Suggested timeline 16
+Referencias 17
+2
+
+--- Página 4 ---
+1. How to reposition the work
+1.1. Current risk
+Themanuscriptcurrentlystudiesapredict-then-optimizeframeworkfor0-1MILPsandtests
+itontheMulti-itemCapacitatedLot-SizingProblem(MCLSP).Itusesclassicalmachinelearning
+models, feature sets based on model parameters and linear relaxations, and a feasibility-aware
+discrimination rule inspired by Phase I of the simplex method. In the strongest setting, the
+reported results show very large runtime reductions and small optimality gaps.
+The risk is that reviewers may interpret the paper as making a broad claim about machine
+learningforcombinatorialoptimization,whiletheevidenceismostlybasedononeproblemclass
+and one strong feature family. A reviewer may ask:
+Is the improvement due to machine learning, or mostly due to the strengthened linear
+relaxation?
+Is the feasibility-aware rule essential, or would simple rounding and repair give similar
+results?
+Does the method generalize beyond MCLSP?
+1.2. Recommended positioning
+The paper should be framed as follows:
+We study whether a feasibility-aware projection of ML-predicted binary decisions can
+produce reliable small-data matheuristics for repeated operational 0-1 MILPs.
+This positioning is stronger because it emphasizes what the paper actually does well:
+It uses small training sets.
+It preserves feasibility before solving the restricted problem.
+It is useful for repeated operational decision-making.
+It evaluates runtime-quality tradeoffs rather than pure prediction accuracy.
+1.3. Possible titles
+A feasibility-aware small-data matheuristic for repeated 0-1 operational MILPs
+A feasibility-aware predict-then-optimize matheuristic for operational MILPs
+If the paper remains MCLSP-only: A feasibility-aware predict-then-optimize matheuristic
+for capacitated lot-sizing
+1.4. Reformulated contribution statement
+The contribution should be written in a controlled way:
+1. We propose a feasibility-aware discrimination rule that transforms continuous ML scores
+into feasible binary decisions through a single auxiliary optimization problem.
+3
+
+--- Página 5 ---
+2. Weintegratethisruleintoapredict-then-optimizematheuristicforrepeated0-1operational
+MILPs.
+3. Wequantifytheroleofdifferentfeaturefamilies,includingoriginalmodelparameters,basic
+linear relaxation features, and strengthened relaxation features.
+4. We perform an ablation study to isolate the effect of ML prediction, relaxation features,
+feasibility recovery, and post-processing.
+5. We evaluate scalability and robustness under changes in problem size and capacity tight-
+ness.
+4
+
+--- Página 6 ---
+2. Research questions to answer
+The student should organize the experimental work around explicit research questions. Each
+question should correspond to one table or figure.
+Code Research question Evidence needed
+RQ1 Does ML add value beyond simple LP-based Compare ML-based variants
+decisions? against LP rounding and no-
+ML relaxation baselines.
+RQ2 Does the feasibility-aware rule matter? Compare threshold-only pre-
+diction with the feasibility-
+aware discrimination rule.
+RQ3 Is feature set C doing most of the work? Compare feature sets A, B,
+andCunderthesameMLmo-
+del and same repair rule.
+RQ4 Is post-processing important? Comparesolutionsbeforeand
+after removing unnecessary
+setup activations.
+RQ5 Is the method stable under small-data trai- Repeat experiments across
+ning? random seeds, splits, and
+training-set sizes.
+RQ6 When does the method scale? Testlargeritemsets,different
+planninghorizons,andtighter
+capacity regimes.
+RQ7 Can the framework be claimed as general? Add a second 0-1 MILP
+class, or narrow the paper to
+MCLSP.
+RQ8 Does cost-sensitive or regret-aware learning Compare accuracy-based se-
+improve decision quality? lection with regret-based va-
+lidation selection and cost-
+weighted variants.
+5
+
+--- Página 7 ---
+3. General roadmap diagram
+1. Reposition the paper
+Small-data, feasibility-
+aware matheuristic
+2. Clean baseline code
+Reproduce current MCLSP results
+3. Build the ablation table
+Isolate the contribu-
+tion of each component
+4. Robustness tests
+Seeds, splits, instance
+size, and difficulty
+5. Enough evidence
+for generality?
+No Yes
+Conservative path Ambitious path
+MCLSP-only paper with strong Add a second 0-1 MILP class
+ablations and modest claims and compare with literature
+6. Regret-aware extension
+Optional: validation gap,
+cost-weighted errors, or
+regret-aware model selection
+7. Submission package
+Paper, appendix, code, in-
+stances, and reproducibility notes
+6
+
+--- Página 8 ---
+4. Ablation table: purpose and structure
+An ablation table removes or replaces one component of the method at a time. The goal is
+to show not only that the full pipeline works, but why it works.
+The full method contains several components:
+1. A source of prediction scores z for the binary variables.
+2. A feature set: A, B, or C.
+3. A classification threshold.
+4. The feasibility-aware discrimination rule.
+5. A restricted MILP obtained by fixing the predicted binary vector.
+6. A post-processing step that removes unnecessary setup activations.
+The ablation table should compare variants that isolate each component.
+4.1. Canonical ablation variants
+ID Variant Prediction source Feasibility ru- Question ans-
+le? wered
+M0 Solver baseline No prediction; full No What is the re-
+MILP solved by ference solution
+Gurobi and runtime?
+M1 Threshold-only ML ML scores z with z ≥ No How often are
+β raw ML predic-
+tions feasible?
+M2 Threshold-only + res- ML thresholded vec- No What is the qua-
+tricted MILP tor fixed in MILP lity without re-
+when feasible pair?
+M3 LP rounding Basic LP relaxation No Doesasimpleno-
+values rounded ML method al-
+ready work?
+M4 LP rounding + feasibi- LP relaxation values Yes What does the
+lity rule used as scores feasibility rule do
+without ML?
+M5 ML-A + feasibility rule MLtrainedwithorigi- Yes How much can
+nal model features original parame-
+ters explain?
+M6 ML-B + feasibility rule MLtrainedwithbasic Yes Doesthebasicre-
+LPrelaxationfeatures laxation help?
+M7 ML-C + feasibility rule ML trained with Yes Is feature set C
+strengthened relaxa- the main driver?
+tion features
+M8 Full method ML-C+feasibilityru- Yes What is the fi-
+le + post-processing nal proposed pi-
+peline?
+7
+
+--- Página 9 ---
+M9 Regret-aware selection Model selected by va- Yes Does
+lidation objective gap optimization-
+aware selection
+beat accuracy-
+based selection?
+4.2. Main ablation table template
+The final paper should include one compact table like this for each major instance group.
+The detailed version can go in the appendix.
+Variant Features Feas. (%) Flips Repair Obj. Time Solved
+gap gap
+M0 Solver – 100 – – 0.00 0.00 –
+M1 Threshold ML A/B/C 0 0
+M3 LP rounding B/C 0 0
+M4 LP + rule B/C
+M5 ML-A + rule A
+M6 ML-B + rule B
+M7 ML-C + rule C
+M8 Full method C 100
+M9 Regret-aware C 100
+Important:Thetableshouldincludeallcomputationaltimeusedbythemethod:featurege-
+neration, ML prediction, feasibility rule solution, restricted MILP solution, and post-processing.
+4.3. Example full table
+Cuadro 4: Ablation table for the proposed feasibility-aware predict-then-optimize framework.
+ML Feasibility- Post- Mean
+Variant Features
+model awarerule processing Feasible Mean Mean flips
+solutions(%)GapObj(%)GapTime(%)
+Solverbaseline — — — — 100 0.00 0.00 —
+Thresholdonly RF C No No 72 0.45 -98.9 0
+Threshold+ RF C No Yes 72 0.39 -98.8 0
+post-processing
+Feasibilityruleonly NoML LPscores Yes Yes 100 1.20 -98.5 18.4
+ML+basicLP RF B Yes Yes 100 2.13 -99.7 9.1
+ML+strengthenedLP RF C Yes Yes 100 0.67 -99.7 2.8
+Fullproposedmethod RF C Yes Yes 100 0.67 -99.7 2.8
+8
+
+--- Página 10 ---
+5. Experiments needed to build the ablation table
+5.1. Experiment 0: reproducibility and clean pipeline
+Objective. Ensure that the current results can be reproduced from clean scripts.
+Tasks.
+1. Createasingleconfigurationfiledefininginstancesize,capacityratio,randomseed,feature
+set, ML model, solver time limit, and output folder.
+2. Save all generated instances with unique identifiers.
+3. Save the optimal or best-known solution for every instance.
+4. Save feature-generation time, training time, prediction time, repair time, restricted MILP
+time, and total time separately.
+5. Reproduce the current tables for feature sets A, B, and C.
+Output. A reproducibility table confirming that the current manuscript results can be rege-
+nerated.
+5.2. Experiment 1: baseline comparison
+Objective. Establish fair reference points.
+Methods to compare.
+Full Gurobi solve with the same time limit used in the manuscript.
+Threshold-only ML prediction.
+LP rounding using feature set B or C values as scores.
+LP rounding plus feasibility-aware rule.
+Gurobi warm start from the predicted solution, if easy to implement.
+Full proposed method.
+Output. A table showing feasibility rate, objective gap, runtime, and number of solved
+instances.
+5.3. Experiment 2: feasibility rule ablation
+Objective. Prove that the Phase-I-inspired rule is necessary and useful.
+Procedure.
+1. Generate raw ML predictions using z ≥β.
+2. Check whether the restricted MILP with this raw binary vector is feasible.
+3. Apply the feasibility-aware rule.
+4. Record how many variables are flipped.
+5. Solve the restricted MILP after repair.
+9
+
+--- Página 11 ---
+6. Compare objective value and runtime before and after repair.
+Metrics.
+Raw feasibility rate.
+Repaired feasibility rate.
+Mean and maximum number of flips.
+Repair time.
+Objective gap after repair.
+Correlation between number of flips and objective gap.
+5.4. Experiment 3: feature-set ablation
+Objective. Quantify the role of feature sets A, B, and C.
+Procedure.
+1. Fix the ML model, preferably RF if it remains the best model.
+2. Train the model separately with feature sets A, B, and C.
+3. Apply the same threshold, same repair rule, and same restricted MILP procedure.
+4. Compare accuracy, feasibility, objective gap, runtime, and flips.
+Interpretation. If feature set C dominates, the paper should not hide this. Instead, the
+contribution becomes: strengthened relaxations generate informative signals, and the feasibility-
+aware rule turns those signals into reliable feasible decisions.
+5.5. Experiment 4: post-processing ablation
+Objective.Measurewhetherremovingunnecessarysetupactivationsimprovestheobjective.
+Procedure.
+1. Solve the restricted MILP after the feasibility-aware rule.
+2. Identify binary setup variables fixed to one but associated with zero production.
+3. Remove these unnecessary setups.
+4. Recompute objective value.
+Metrics.
+Number of removed setup variables.
+Objective improvement from post-processing.
+Frequency with which post-processing changes the solution.
+10
+
+--- Página 12 ---
+5.6. Experiment 5: robustness across seeds and splits
+Objective. Show that the method is not an artifact of one split.
+Procedure.
+1. Use at least 10 random seeds.
+2. Ensure splits are made at the instance level, not at the row or variable level.
+3. Report mean and standard deviation for all key metrics.
+4. If possible, report 95% confidence intervals.
+Output. A robustness table with mean ± standard deviation for GapObj, GapTime, feasi-
+bility rate, and flips.
+5.7. Experiment 6: training-set size sensitivity
+Objective. Support the small-data claim.
+Procedure.
+1. Trainwithdifferentnumbersofsolvedinstances,forexampleN ∈{6,9,12,18,24}ifcompu-
+tationally feasible.
+2. Keep the test set fixed.
+3. Evaluate how solution quality and feasibility evolve as training data increases.
+Expected insight. If performance is already strong with few instances, this reinforces the
+main story of the paper.
+5.8. Experiment 7: instance difficulty and scalability
+Objective. Identify when the method is most valuable.
+Factors to vary.
+Number of items.
+Planning horizon.
+Capacity tightness.
+Setup-to-holding cost ratio.
+Output. A table or heatmap showing where the proposed method has the best runtime-
+quality tradeoff.
+11
+
+--- Página 13 ---
+6. Should we add another 0-1 MILP problem?
+There are two possible publication paths.
+6.1. Path A: conservative and faster
+Keep the paper focused on MCLSP. In this case, the title and claims must be narrowed. The
+paper becomes a strong, problem-specific matheuristic paper.
+Use this path if:
+The ablation study is strong.
+Time is limited.
+Adding a second problem would delay the paper too much.
+6.2. Path B: broader and stronger
+Add a second 0-1 MILP family. This supports the claim that the feasibility-aware framework
+is not only a lot-sizing trick.
+Recommended candidates.
+Problem Why it fits Risk
+Capacitated facility lo- Has binary opening decisions Need instance generator and
+cation and continuous assignment/flow fair baselines.
+decisions. Similar fixed-charge
+structure but different from
+MCLSP.
+Fixed-charge transpor- Very close to the general MILP May be perceived as too simi-
+tation structure with activation varia- lar to MCLSP if not designed
+bles. carefully.
+p-median or facility lo- Classical,interpretable,andeasy Some variants are mostly
+cation variants to explain. binary and may not test the
+continuous-restricted MILP
+logic.
+Generalized assignment Challenging and widely studied. Feasibility rule may need mo-
+re adaptation.
+Set covering with acti- Simple and scalable. Less aligned with the current
+vation variables continuous-plus-binaryframe-
+work.
+Recommendation. First complete the MCLSP ablation study. Then add a second problem
+only if the ablation confirms that the method has an independent contribution beyond feature
+set C. The best candidate is capacitated facility location or fixed-charge transportation.
+12
+
+--- Página 14 ---
+7. How to compare with the literature
+The paper should include two types of comparisons.
+7.1. Computational baselines
+These are methods to implement and run:
+Full MILP solver with time limit.
+LP rounding.
+LP rounding plus feasibility-aware rule.
+ML thresholding without repair.
+ML with feasibility-aware repair.
+Optional: solver warm start from predicted variables.
+7.2. Literature positioning
+These methods do not all need to be reimplemented, but they should be discussed clearly:
+Predict-then-optimize and decision-focused learning methods, especially SPO and SPO+.
+Neural diving and neural branching approaches for MIP.
+Learning-based variable fixing and correction methods.
+Lot-sizing ML approaches, especially LSTM or transformer-based methods for setup pre-
+diction.
+Thecomparisonshouldbehonest:theproposedpaperisnottryingtobeatallneuralmethods
+on all benchmarks. Its niche is small-data, interpretable, feasibility-aware, operational
+MILP matheuristics.
+13
+
+--- Página 15 ---
+8. Regret-aware extension
+The current ML models are trained to reduce prediction error in the binary vector. However,
+not all binary mistakes have the same downstream cost. In MCLSP, predicting a setup variable
+incorrectly can have very different consequences depending on item, period, demand, capacity,
+and cost structure. A false negative may make the restricted problem infeasible. A false positive
+may only add an unnecessary setup, and it may later be removed by post-processing. Therefore,
+standard accuracy is not fully aligned with optimization performance.
+8.1. Core idea
+The regret-aware extension asks:
+Can we train or select ML models by the cost of the optimization error they induce,
+rather than by the number of binary variables they classify correctly?
+A natural instance-level regret measure is:
+v (yˆ)−v (y∗)
+(yˆ)= i i i ,
+i m´ax{1,|v (y∗)|}
+i i
+where v (yˆ) is the objective value obtained after applying the feasibility rule and solving the
+i
+restricted MILP, and v (y∗) is the optimal or best-known objective value.
+i i
+8.2. Minimum viable regret experiment
+The easiest useful version is not to change the training algorithm yet. Instead, change the
+model selection criterion.
+1. Train the same candidate ML models and hyperparameters as before.
+2. On the validation fold, apply the complete optimization pipeline: prediction, feasibility
+rule, restricted MILP, post-processing.
+3. Select the model that minimizes validation GapObj or validation regret.
+4. Compare this against the current accuracy/CV-based selection.
+This directly tests whether a model with lower classification accuracy can produce better
+optimization decisions.
+8.3. Second-level regret-aware variant: weighted classification
+After the minimum experiment, we can try cost-weighted training. Instead of treating all
+binary variables equally, assign a weight w to each binary label y , where w estimates the
+ip ip ip
+cost of misclassifying variable p in instance i.
+Possible weights:
+Exact counterfactual weight: solve the model after forcing one variable to the wrong value
+and measure objective degradation. This is accurate but expensive.
+Approximate weight from objective coefficients, setup costs, demand, capacity tightness,
+or reduced costs.
+14
+
+--- Página 16 ---
+Validation-based weight from observed damage caused by flips or false negatives.
+Then train using weighted classification, for example through sample weights in random
+forests or weighted logistic loss for other classifiers.
+8.4. Third-level variant: regret-aware feasibility rule
+The feasibility rule can also be modified. Instead of minimizing only the number of flips and
+confidence-weighted penalties, each flip can receive a predicted cost:
+(cid:88) (cid:88)
+m´ın w0→1q0→1+ w1→0q1→0,
+p p p p
+p p
+whereq0→1andq1→0indicatewhetherthepredictedbinaryvalueisflipped.Theweightscombine
+p p
+ML confidence and estimated optimization damage.
+This is attractive because it keeps the feasibility-aware structure of the current paper but
+makes the correction rule more optimization-aware.
+15
+
+--- Página 17 ---
+9. Suggested timeline
+Weeks Main task Deliverable
+1–2 Reproduce current results and Reproducibility report and experiment
+clean the codebase configuration files.
+3–4 Implement baselines and abla- First ablation table for MCLSP.
+tion variants
+5–6 Run robustness, seed, and Robustness tables and plots.
+training-size experiments
+7 Add minimum viable regret- Accuracy-selected vs regret-selected
+aware selection comparison.
+8–9 Decide whether to add a se- Either second-problem results or narro-
+cond 0-1 MILP wed MCLSP paper.
+10–18 Rewrite paper and prepare ap- Submission-readymanuscript,appendix,
+pendix and code release plan.
+16
+
+--- Página 18 ---
+Referencias
+[1] Cornejo,J.,Davila-Galvez,S.,Quezada,F.,andRojo-Gonzalez,L.(2026).Feasibility-aware
+predict-then-optimizeframeworkfor0-1mixed-integerlinearproblems.Workingmanuscript.
+[2] Bengio, Y., Lodi, A., and Prouvost, A. (2021). Machine learning for combinatorial optimi-
+zation: a methodological tour d’horizon. European Journal of Operational Research, 290(2),
+405–421.
+[3] Elmachtoub, A. N., and Grigas, P. (2022). Smart “predict, then optimize”. Management
+Science, 68(1), 9–26.
+[4] Vanderschueren, T., Verdonck, T., Baesens, B., and Verbeke, W. (2022). Predict-then-
+optimize or predict-and-optimize? An empirical evaluation of cost-sensitive learning stra-
+tegies. Information Sciences, 594, 400–415.
+[5] Nair, V., et al. (2020). Solving mixed integer programs using neural networks. ar-
+Xiv:2012.13349.
+[6] Yilmaz,D.,andBuyuktahtakin,I.E.(2024).Anexpandablemachinelearning-optimization
+frameworktosequentialdecision-making.EuropeanJournalofOperationalResearch,314(1),
+280–296.
+[7] Liu, H., Wang, J., Geng, Z., Li, X., Zong, Y., Zhu, F., Hao, J., and Wu, F. (2025). Apollo-
+MILP: An alternating prediction-correction neural solving framework for mixed-integer li-
+near programming. arXiv:2503.01129.
+17
