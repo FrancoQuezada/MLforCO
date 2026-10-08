@@ -1,0 +1,37 @@
+# Python caches, build metadata, and tool caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Local environments and editor settings
+.venv/
+venv/
+env/
+.conda/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Solver logs and the local console transcript (retained locally)
+*.log
+/experimento_test.txt
+
+# New experiment outputs; existing tracked research artifacts remain versioned
+/results_*/
+
+# Credentials and license material
+.env
+.env.*
+!.env.example
+!.env.template
+*.lic
+*.pem
+*.key
+id_rsa
+id_ed25519
+credentials*.json

@@ -34,6 +34,7 @@ Central source of configuration for Experiment 0:
 
 ### Pipeline Scripts
 
+- `main.py`: command-line orchestration with `generate`, `solve`, `train`, `evaluate`, and `all`; runs scripts from the repository root and stops on a failed phase.
 - `01_generate_instances.py`: calls `crear_base_datos`, filters configured instance IDs, and writes instance/metadata Excel files.
 - `02_solve_optimal.py`: calls `optimal`, `optimal_relaxed_binary`, and `optimal_root_node`; writes optimal variables, relaxation variables, and metrics.
 - `03_train_model.py`: loads training variables, builds `binaria` from `y_pre`, prepares feature combinations, trains classifiers, and saves pickled models/scalers.
@@ -123,10 +124,9 @@ The active generated data schema uses one row per `(Instancia, Periodo, Item)` c
 
 ## Missing or Unclear Information
 
-- No formal project name beyond the directory name was found.
 - No automated tests were found.
 - No dependency manifest was found.
-- No command-line interface or argument parsing was found.
+- `main.py` supplies an argparse CLI, documented in `README.md`.
 - No explicit environment variable contract was found.
 - Expected runtime for the full pipeline cannot be determined from code alone.
 - Whether all legacy functions in `functions.py` are still intended to be maintained cannot be determined.
@@ -139,3 +139,37 @@ The active generated data schema uses one row per `(Instancia, Periodo, Item)` c
 - Missing dependency and test files make reproducibility harder.
 - Gurobi log parsing and callbacks are embedded in several optimization variants.
 - Training is coupled to optimization-based validation, making development feedback loops slow.
+
+## Verified Training and Evaluation Details
+
+- The active classifiers are Decision Tree, Random Forest, K-nearest Neighbors, probability-enabled SVC, and Gaussian Naive Bayes.
+- The wrappers split unique `Instancia` IDs with `test_size=3/12` and seed 42, then apply `LeaveOneGroupOut` to the fitting instances. Scaling is fitted on each fold's fitting data and on the final fitting subset.
+- `ParameterSampler` samples hyperparameter configurations with seed 42. Selection minimizes the nonzero coefficient of variation of feasibility-aware fold scores, with a first-candidate fallback; it does not maximize mean accuracy.
+- `vars_a_levantar_train` performs two work-limited MILP solves per validation instance and scores setup agreement excluding period 1. Phase 3 persists repaired holdout accuracy, but drops the separately returned raw accuracy.
+- Each classifier/feature combination is trained and saved separately. There is no automatic selection of one overall deployment model.
+- Online repair keeps above-threshold setups active and can change predicted-zero setups to one. `vars_a_levantar` uses `SolutionLimit=1`, so minimum-change optimality is not certified.
+- The root-node callback collects relaxation values at node zero and terminates on a non-root callback. The `tl` argument is not applied in that routine; callback extraction failure can trigger instance replacement.
+- The `LogisticR` helper references undefined `train_instances` and is incomplete. XGBoost, gradient boosting, resampling, feature expansion, feature selection, warm starts, and hints are outside the active numbered pipeline.
+
+## Metric Interpretation
+
+- `optimal` and `optimal_predict_threshUP` use Gurobi `WorkLimit`; time-oriented configuration comments do not describe wall-clock limits. The continuous-relaxation routine and online auxiliary repair have no explicit time/work cap.
+- Reference `time_optimal`, `time_relaxed`, and `time_rootnode` receive solver work units from their helpers. These columns must not be interpreted as elapsed seconds.
+- Phase-4 `prediction_time` measures variable-fixing construction, not classifier inference; `time_hat` excludes feature generation, full model construction, and separately recorded repair duration.
+- `gap_hat` is the restricted solver's MIP gap, not relative objective loss against the unrestricted reference. Root-node metrics mix an incumbent `objVal` with costs recomputed from relaxation values, so they are not a certified bound series.
+- Raw and post-processed objectives differ because negligible production triggers setup removal.
+- Reference callback summary values are zeros. ROC/AUC/threshold values returned by the active ML wrappers are zero placeholders, not measured diagnostics.
+- Phase-4 `feasible` stores a repaired setup dictionary rather than a Boolean or a feasibility rate. Fixing counters do not identify repair-flip counts separately.
+- Work-limited reference solves may supply incumbent labels without proving optimality. File names containing `optimal` do not by themselves certify solver status.
+
+## Publication Review and Retained Artifacts
+
+- The supplied image is published unchanged at `docs/images/imitation_learning_framework.png` and embedded in `README.md`.
+- Nine retained Excel workbooks were inspected: instance and metadata tables, solution/relaxation tables, reference metric tables, and one parameter-selection record. The instance-variable tables have unique `(Instancia, Periodo, Item)` keys and no missing values.
+- The retained snapshot contains 12 training instances with 8 items/60 periods and 30 test instances with 32 items/60 periods. Only the `DT`/`A` model and matching scaler are present; both pickle metadata records identify scikit-learn 1.4.2.
+- Consolidated phase-3 and phase-4 metric files are absent. Default evaluation needs the remaining configured model/scaler pairs from phase 3.
+- `.gitignore` excludes new experiment outputs, caches, environments, editor settings, solver logs, the local console transcript, credentials, and license files. Existing tracked research datasets, PDFs/text, and model/scaler artifacts are retained.
+- Python syntax, CLI help, workbook schemas, pickle metadata, and the supplied image were checked during publication. The runtime import check failed because scikit-learn was absent; XGBoost and optional pdfplumber were also absent. Gurobi imported but license initialization failed with `License expired 2025-11-24`.
+- All eight Python files passed in-memory compilation, and all eight README relative links resolved. The generator function was extracted from its source AST and exercised on two three-period/two-item instances; repeated generation with seed 17 produced identical DataFrames without writing experiment outputs. This was a focused helper check, not a numbered-phase run.
+- Credential-pattern scans found no matches in the tracked working files, workbook XML, or Git history. These checks do not establish an exhaustive security audit.
+- The numbered phases were not rerun, dependencies were not installed into the user's environment, and the existing generated research artifacts were not modified. Manuscript performance claims and roadmap experiments have not been independently reproduced by this review.
