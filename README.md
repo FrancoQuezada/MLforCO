@@ -219,3 +219,10 @@ Assistant Professor — Department of Industrial Engineering, Universidad de San
 Research interests: Operations Research, Mathematical Optimization, Stochastic Programming, Combinatorial Optimization, and Machine Learning for Optimization.
 
 GitHub: [FrancoQuezada](https://github.com/FrancoQuezada)
+
+## Collaborators
+
+- Javier Cornejo
+- Sebastian Davila
+- Luis Rojo
+- Catalina Muñoz
